@@ -13,45 +13,6 @@ struct Block {
     Block* next;
 };
 
-//  +++[->++<]
-//  Code
-//      Block
-//          char +
-//          block NULL
-//          next ...
-//      Block
-//          char +
-//          block NULL
-//          next ...
-//      Block
-//          char +
-//          block NULL
-//          next ...
-//      Block
-//          char [
-//          block ... 
-//              Block 
-//                  char -
-//                  block NULL
-//                  next ...
-//              Block
-//                  char >
-//                  block NULL
-//                  next ...
-//              Block
-//                  char +
-//                  block NULL
-//                  next ...
-//              Block
-//                  char +
-//                  block NULL
-//                  next ...
-//              Block
-//                  char <
-//                  block NULL
-//                  next NULL
-//          next NULL
-//
 short valid_char(char c) {
     char* ptr = "[]+-,.><";
     while(1) {
@@ -81,7 +42,7 @@ Block* parse_block(FILE* stream) {
     size_t bytes_read;
     char command = next_char(stream, &bytes_read);
     
-    if(bytes_read == 0) return block;
+    if(feof(stream)) return block;
     if(command == ']') return block;
 
     block = malloc(sizeof(Block));
@@ -128,17 +89,20 @@ void tabs(int depth) {
 void show_tree_R(Block* block, int depth) {
     if(block == NULL) return;
     tabs(depth);
-    printf("Command: %c\n", block->command);
+    printf("Command: %u\n", block->command);
     show_tree_R(block->block, depth+1);
     show_tree_R(block->next,depth);
 }
 
 void show_tree(Block* block){
     if(block == NULL) return;
-    printf("Command: %c\n", block->command);
+    printf("Command: %u\n", block->command);
     show_tree_R(block->block, 1);
     show_tree(block->next);
 }
+
+
+#ifndef __TRANSLATOR__
 
 int main(int argV, char** argC) {
     /*
@@ -162,3 +126,4 @@ int main(int argV, char** argC) {
     return EXIT_SUCCESS;
 }
 
+#endif
