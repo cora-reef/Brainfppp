@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h>
 
 typedef struct Block Block;
 
@@ -11,6 +12,7 @@ struct Block {
     char command;
     Block* block;
     Block* next;
+    u_int16_t repeat;
 };
 
 short valid_char(char c) {
@@ -51,6 +53,7 @@ Block* parse_block(FILE* stream) {
     block->command = command;
     block->next = NULL;
     block->block = NULL;
+    block->repeat = 1;
 
 
     if(command == '[') {
@@ -73,11 +76,16 @@ Block* parse_code(FILE* stream) {
     return start;
 }
 
+void free_block(Block* block){
+    if(block == NULL) return;
+    free(block);
+}
+
 void free_blocks(Block* block) {
     if(block == NULL) return;
     free_blocks(block->block);
     free_blocks(block->next);
-    free(block);
+    free_block(block);
 }
 
 void tabs(int depth) {
@@ -86,23 +94,52 @@ void tabs(int depth) {
     }
 }
 
+int repeatable(char c){
+    char* ptr = "+-><";
+    while(*ptr != 0){
+        if (*ptr == c) return 1;
+        ptr++;
+    }
+    return 0;
+}
+
 void show_tree_R(Block* block, int depth) {
     if(block == NULL) return;
     tabs(depth);
-    printf("Command: %u\n", block->command);
+    printf("Command: %c\n", block->command);
+    tabs(depth);
+    printf(" count: %u\n",block->repeat); 
     show_tree_R(block->block, depth+1);
     show_tree_R(block->next,depth);
 }
 
 void show_tree(Block* block){
     if(block == NULL) return;
-    printf("Command: %u\n", block->command);
+    printf("Command: %c\n", block->command);
+    if(repeatable(block->command) && block->repeat > 1) printf(" count: %u\n",block->repeat); 
     show_tree_R(block->block, 1);
     show_tree(block->next);
 }
 
+void simplify(Block* code) {
+    while (code != NULL){
+        simplify(code->block);
+        if(repeatable(code->command)){
+            Block* ptr = code->next;
+            while(ptr != NULL && ptr->command == code->command){
+                code->next = ptr->next;
+                code->repeat++;
+                Block* tmp = ptr;
+                ptr = ptr->next;
+                free_block(tmp);
+            }
+        }
+        code = code->next;
+    }
+}
 
 #ifndef __TRANSLATOR__
+
 
 int main(int argV, char** argC) {
     /*

@@ -34,28 +34,28 @@ void write(Block* block, FILE* out_file, size_t depth){
     ftabs(depth,out_file);
     switch (block->command) {
         case '+':
-            fputs("*curr += 1;\n",out_file);
+            fprintf(out_file,"*curr += %u;\n",block->repeat);
             break;
         case '-':
-            fputs("*curr -= 1;\n",out_file);
+            fprintf(out_file,"*curr -= %u;\n",block->repeat);
             break;
         case '[':
-            fputs("while(*curr != 0) {\n",out_file);
+            fprintf(out_file,"while(*curr != 0) {\n");
             break;
         case '>':
-            fputs("curr = cells + ((curr - cells + 1) \% CELL_COUNT);\n",out_file);
+            fprintf(out_file,"curr = cells + ((curr - cells + %u) %% CELL_COUNT);\n",block->repeat);
             break;
         case '<':
-            fputs("curr = cells + ((curr - cells + CELL_COUNT -1) \% CELL_COUNT);\n",out_file);
+            fprintf(out_file,"curr = cells + ((curr - cells + CELL_COUNT -%u) %% CELL_COUNT);\n",block->repeat);
             break;
         case '.':
-            fputs("putc(*curr,stdout);\n",out_file);
+            fprintf(out_file,"putc(*curr,stdout);\n");
             break;
         case ',':
-            fputs("*curr = getc(stdin);\n",out_file);
+            fprintf(out_file,"*curr = getc(stdin);\n");
             break;
         case 0:
-            fputs("return EXIT_SUCCESS;\n}",out_file);
+            fprintf(out_file,"return EXIT_SUCCESS;\n}");
             return;
         default:
             perror("ERROR: invalid command");
@@ -85,6 +85,14 @@ int main(int argV, char** argC) {
     Block* code = parse_code(in_file);
     fclose(in_file);
     
+    show_tree(code);
+    simplify(code);
+    for(int i=0; i<10; i++){
+        putc('-',stdout);
+    }
+    putc('\n',stdout);
+    show_tree(code);
+
     char* out_file_name = "out.c";
     if (argV == 3) {
         out_file_name = argC[2];
